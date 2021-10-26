@@ -8,6 +8,8 @@ Access the [Meld Sandbox](https://meld.interop.community/)
 
 Visit [InterOp.Community](https://interop.community/)
 
+Access [Meld Documentation](https://github.com/Interop-community/meld-documentation)
+
 ## About Meld
 
 MELD was created with hope that it could help be a tool the healthcare ecosystem could use to help improve healthcare applications and emerging healthcare standards. Meld is going to achieve this by not only being an open-source platform, but also one that is driven by working together as a community.

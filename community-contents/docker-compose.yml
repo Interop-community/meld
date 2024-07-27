@@ -1,0 +1,233 @@
+
+# COMPOSE_PARALLEL_LIMIT=1 docker compose up
+services:
+
+  keycloak:
+    container_name: keycloak
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM quay.io/keycloak/keycloak:17.0.1-legacy
+        ADD --chmod=755 https://raw.githubusercontent.com/Interop-community/meld/main/community-contents/realm_properties.json /tmp/
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_VENDOR=mysql
+      - DB_ADDR=127.0.0.1
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KEYCLOAK_IMPORT=/tmp/realm_properties.json
+      - JAVA_OPTS_APPEND="-Dkeycloak.profile.feature.upload_scripts=enabled"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    network_mode: host
+
+  dstu2:
+    container_name: dstu2
+    image: public.ecr.aws/interoperabilityinstitute/meld/api:latest
+    ports:
+      - "8078:8078"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dstu2,multitenant
+      - API_PORT=8078
+      - SANDBOX_NAME=hspc9
+      - SBMA_HOST=localhost
+      - SBMA_PORT=12000
+      - DB_HOST=127.0.0.1
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=localhost
+      - AUTH_PORT=8060
+      - MANIFEST_OVERRIDE=false
+      - MESSAGING_OVERRIDE=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+    network_mode: host
+
+  stu3:
+    container_name: stu3
+    image: public.ecr.aws/interoperabilityinstitute/meld/api:latest
+    ports:
+      - "8079:8079"
+    environment:
+      - SPRING_PROFILES_ACTIVE=stu3,multitenant
+      - API_PORT=8079
+      - SANDBOX_NAME=hspc9
+      - SBMA_HOST=localhost
+      - SBMA_PORT=12000
+      - DB_HOST=127.0.0.1
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=localhost
+      - AUTH_PORT=8060
+      - MANIFEST_OVERRIDE=false
+      - MESSAGING_OVERRIDE=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+    network_mode: host
+
+  r4:
+    container_name: r4
+    image: public.ecr.aws/interoperabilityinstitute/meld/api:latest
+    ports:
+      - "8070:8070"
+    environment:
+      - SPRING_PROFILES_ACTIVE=r4,multitenant
+      - API_PORT=8070
+      - SANDBOX_NAME=hspc10
+      - SBMA_HOST=localhost
+      - SBMA_PORT=12000
+      - DB_HOST=127.0.0.1
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=localhost
+      - AUTH_PORT=8060
+      - MANIFEST_OVERRIDE=false
+    hostname: r4
+    depends_on:
+      mysql:
+        condition: service_healthy
+    network_mode: host
+
+  r5:
+    container_name: r5
+    image: public.ecr.aws/interoperabilityinstitute/meld/api:latest
+    ports:
+      - "8071:8071"
+    environment:
+      - SPRING_PROFILES_ACTIVE=r5,multitenant
+      - API_PORT=8071
+      - SANDBOX_NAME=hspc10
+      - SBMA_HOST=localhost
+      - SBMA_PORT=12000
+      - DB_HOST=127.0.0.1
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=localhost
+      - AUTH_PORT=8060
+      - MANIFEST_OVERRIDE=false
+    depends_on:
+      mysql:
+        condition: service_healthy
+    network_mode: host
+  
+  sandbox:
+    container_name: sandbox
+    image: public.ecr.aws/interoperabilityinstitute/meld/sandbox-manager:local       
+    ports:
+      - "3001:3000"   
+    depends_on:
+      - stu3
+    # pull_policy: always
+    
+
+  ehr-app:
+    container_name: ehr-app
+    image: public.ecr.aws/interoperabilityinstitute/meld/ehr-app
+    ports:
+    -  "3000:3000"
+
+
+  sandbox-manager-api:
+    container_name: sandbox-manager-api
+    image: public.ecr.aws/interoperabilityinstitute/meld/sandbox-manager-api
+    ports:
+      - "12000:12000"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=sandman
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=host.docker.internal
+      - AUTH_PORT=8060
+      - API_DSTU2_HOST=host.docker.internal
+      - API_STU3_HOST=host.docker.internal
+      - API_R4_HOST=host.docker.internal
+      - API_R5_HOST=host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      
+  mysql:
+    container_name: mysql
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM public.ecr.aws/interoperabilityinstitute/meld/meld-mysql
+        RUN echo "CREATE DATABASE keycloak;" > /docker-entrypoint-initdb.d/keycloak.sql
+    image: public.ecr.aws/interoperabilityinstitute/meld/meld-mysql
+    ports:
+      - "3306:3306"
+    volumes:
+      - meld-sandbox-volume:/var/lib/mysql57
+    environment:
+      - MYSQL_PASSWORD=password
+      - MYSQL_ROOT_PASSWORD=password
+    healthcheck:
+      test: ["CMD-SHELL", "/wait-for-db.sh"]
+      interval: 2s
+      timeout: 30s
+      retries: 20
+
+  auth:
+    container_name: reference-auth
+    image: public.ecr.aws/interoperabilityinstitute/meld/auth:local
+    ports:
+      - "8060:8060"
+    environment:
+      - AUTH_HOST=localhost
+      - AUTH_PORT=8060
+      - DB_NAME=oic
+      - DB_HOST=localhost
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - SHOW_SQL=true
+      - API_DSTU2_HOST=localhost
+      - API_DSTU2_PORT=8078
+      - API_STU3_HOST=localhost
+      - API_STU3_PORT=8079
+      - API_R4_HOST=localhost
+      - API_R4_PORT=8070
+      - PATIENT_PICKER_HOST=localhost
+      - PATIENT_PICKER_PORT=8094
+      - SANDMAN_API_HOST=localhost
+      - SANDMAN_API_PORT=12000
+      - SPRING_PROFILES_ACTIVE=users-keycloak,local
+      - KEYCLOAK_REALM=Development
+      - KEYCLOAK_AUTH_SERVER_URL=http://localhost:8080/auth
+      - KEYCLOAK_SSL_REQUIRED=none
+      - KEYCLOAK_CREDENTIALS=593ada9c-b1dc-444f-a2e6-30cc4add8146
+      - KEYCLOAK_LOGOUT_SUCCESS_URL=http://localhost:8080/auth/realms/Development/protocol/openid-connect/logout?redirect_uri=http://localhost:3000
+    network_mode: host
+    depends_on:
+        mysql:
+          condition: service_healthy
+    
+
+  patient-data-manager:
+    container_name: patient-data-manager
+    image: public.ecr.aws/interoperabilityinstitute/meld/patient-data-manager
+    ports:
+      - "8096:8096"
+
+  bilirubin-risk-chart:
+    container_name: bilirubin-risk-chart
+    image: public.ecr.aws/interoperabilityinstitute/meld/bilirubin-risk-chart
+    ports:
+      - "8086:8086"
+  
+
+volumes:
+  meld-sandbox-volume:

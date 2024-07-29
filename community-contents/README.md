@@ -18,7 +18,7 @@ Once all the services are up, sandbox-manager ui will be available at &#8594; `l
 
 
 ### Contact
-please reach out Kendrah Baker `kendrah.baker@interoperabilityinstitute.org` for questions regarding setup and services in the compose file.
+please reach out Kendrah Baker [kendrah.baker@interoperabilityinstitute.org](mailto:kendrah.baker@interoperabilityinstitute.org) for questions regarding setup and services in the compose file.
 
 
 -----

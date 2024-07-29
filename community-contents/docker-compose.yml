@@ -31,7 +31,7 @@ services:
     ports:
       - "8078:8078"
     environment:
-      - SPRING_PROFILES_ACTIVE=dstu2,multitenant
+      - SPRING_PROFILES_ACTIVE=dstu2,multitenant,local
       - API_PORT=8078
       - SANDBOX_NAME=hspc9
       - SBMA_HOST=localhost
@@ -55,7 +55,7 @@ services:
     ports:
       - "8079:8079"
     environment:
-      - SPRING_PROFILES_ACTIVE=stu3,multitenant
+      - SPRING_PROFILES_ACTIVE=stu3,multitenant,local
       - API_PORT=8079
       - SANDBOX_NAME=hspc9
       - SBMA_HOST=localhost
@@ -79,7 +79,7 @@ services:
     ports:
       - "8070:8070"
     environment:
-      - SPRING_PROFILES_ACTIVE=r4,multitenant
+      - SPRING_PROFILES_ACTIVE=r4,multitenant,local
       - API_PORT=8070
       - SANDBOX_NAME=hspc10
       - SBMA_HOST=localhost
@@ -103,7 +103,7 @@ services:
     ports:
       - "8071:8071"
     environment:
-      - SPRING_PROFILES_ACTIVE=r5,multitenant
+      - SPRING_PROFILES_ACTIVE=r5,multitenant,local
       - API_PORT=8071
       - SANDBOX_NAME=hspc10
       - SBMA_HOST=localhost

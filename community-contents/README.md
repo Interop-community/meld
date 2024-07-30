@@ -5,7 +5,7 @@ Docker Compose >= 2.17
 Docker Desktop >= 4.29  (only applicable to Docker Desktop users)
 - Enable host networking
 
-![DockerDesktop Setting](https://global.discourse-cdn.com/docker/optimized/3X/4/4/44199bf1291021c6629b91e688ca54aa33f8ee1f_2_690x391.png "https://docs.docker.com/network/drivers/host/#docker-desktop")
+![DockerDesktop Setting](DocketDesktopSetting.png "https://docs.docker.com/network/drivers/host/#docker-desktop")
 
 ### Usage
 

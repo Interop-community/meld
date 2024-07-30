@@ -177,8 +177,8 @@ services:
       - MYSQL_ROOT_PASSWORD=password
     healthcheck:
       test: ["CMD-SHELL", "/wait-for-db.sh"]
-      interval: 2s
-      timeout: 30s
+      interval: 10s
+      timeout: 60s
       retries: 20
 
   auth:

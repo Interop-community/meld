@@ -168,7 +168,6 @@ services:
       dockerfile_inline: |
         FROM public.ecr.aws/interoperabilityinstitute/meld/meld-mysql
         RUN echo "CREATE DATABASE keycloak;" > /docker-entrypoint-initdb.d/keycloak.sql
-    image: public.ecr.aws/interoperabilityinstitute/meld/meld-mysql
     ports:
       - "3306:3306"
     volumes:

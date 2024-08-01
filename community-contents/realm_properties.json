@@ -711,7 +711,8 @@
       "secret": "593ada9c-b1dc-444f-a2e6-30cc4add8146",
       "redirectUris": [
         "http://localhost:8060/*",
-        "http://localhost:3001/*"
+        "http://localhost:3001/*",
+        "http://auth:8060/*"
       ],
       "webOrigins": [
         "http://localhost::8060/"

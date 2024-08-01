@@ -166,6 +166,7 @@ services:
       context: .
       dockerfile_inline: |
         FROM public.ecr.aws/interoperabilityinstitute/meld/meld-mysql
+        RUN sed -i 's+http://static-content:8090+https://iol2content.interop.community+g' /docker-entrypoint-initdb.d/sandman.sql
         RUN echo "CREATE DATABASE keycloak;" > /docker-entrypoint-initdb.d/keycloak.sql
     ports:
       - "3306:3306"

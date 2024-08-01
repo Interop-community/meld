@@ -7,22 +7,23 @@ services:
     build:
       context: .
       dockerfile_inline: |
-        FROM quay.io/keycloak/keycloak:17.0.1-legacy
+        FROM quay.io/keycloak/keycloak:legacy
         ADD --chmod=755 https://raw.githubusercontent.com/Interop-community/meld/main/community-contents/realm_properties.json /tmp/
     ports:
       - "8080:8080"
     environment:
-      - DB_VENDOR=mysql
-      - DB_ADDR=127.0.0.1
-      - DB_USER=root
-      - DB_PASSWORD=password
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - DB_VENDOR=h2
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+      - KC_HTTP_ENABLED=true
       - KEYCLOAK_IMPORT=/tmp/realm_properties.json
-      - JAVA_OPTS_APPEND="-Dkeycloak.profile.feature.upload_scripts=enabled"
-    depends_on:
-      mysql:
-        condition: service_healthy
+    volumes:
+      - keycloak:/opt/jboss/keycloak/standalone/data/
+    healthcheck:
+      test:  timeout 10s bash -c ':> /dev/tcp/localhost/8080'
+      interval: 5s
+      timeout: 30s
+      retries: 20
     network_mode: host
 
   dstu2:
@@ -126,9 +127,8 @@ services:
     ports:
       - "3001:3000"   
     depends_on:
-      - stu3
-    # pull_policy: always
-    
+      keycloak:
+        condition: service_healthy 
 
   ehr-app:
     container_name: ehr-app
@@ -171,14 +171,14 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - meld-sandbox-volume:/var/lib/mysql57
+      - meld:/var/lib/mysql
     environment:
       - MYSQL_PASSWORD=password
       - MYSQL_ROOT_PASSWORD=password
     healthcheck:
       test: ["CMD-SHELL", "/wait-for-db.sh"]
-      interval: 10s
-      timeout: 60s
+      interval: 2s
+      timeout: 30s
       retries: 20
 
   auth:
@@ -230,4 +230,5 @@ services:
   
 
 volumes:
-  meld-sandbox-volume:
+  meld:
+  keycloak:

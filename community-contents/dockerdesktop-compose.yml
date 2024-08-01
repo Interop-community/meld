@@ -1,3 +1,4 @@
+
 # COMPOSE_PARALLEL_LIMIT=1 docker compose up
 services:
 
@@ -6,22 +7,23 @@ services:
     build:
       context: .
       dockerfile_inline: |
-        FROM quay.io/keycloak/keycloak:17.0.1-legacy
+        FROM quay.io/keycloak/keycloak:legacy
         ADD --chmod=755 https://raw.githubusercontent.com/Interop-community/meld/main/community-contents/realm_properties.json /tmp/
     ports:
       - "8080:8080"
     environment:
-      - DB_VENDOR=mysql
-      - DB_ADDR=mysql
-      - DB_USER=root
-      - DB_PASSWORD=password
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - DB_VENDOR=h2
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+      - KC_HTTP_ENABLED=true
       - KEYCLOAK_IMPORT=/tmp/realm_properties.json
-      - JAVA_OPTS_APPEND="-Dkeycloak.profile.feature.upload_scripts=enabled"
-    depends_on:
-      mysql:
-        condition: service_healthy
+    volumes:
+      - keycloak:/opt/jboss/keycloak/standalone/data/
+    healthcheck:
+      test:  timeout 10s bash -c ':> /dev/tcp/localhost/8080'
+      interval: 5s
+      timeout: 30s
+      retries: 20
 
   dstu2:
     container_name: dstu2
@@ -68,6 +70,11 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    healthcheck:
+      test: curl -f http://stu3:8079
+      interval: 5s
+      timeout: 30s
+      retries: 20
 
   r4:
     container_name: r4
@@ -120,7 +127,10 @@ services:
     ports:
       - "3001:3000"   
     depends_on:
-      - stu3
+      stu3:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
     
 
   ehr-app:
@@ -162,7 +172,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - meld-sandbox-volume:/var/lib/mysql57
+      - meld:/var/lib/mysql
     environment:
       - MYSQL_PASSWORD=password
       - MYSQL_ROOT_PASSWORD=password
@@ -185,11 +195,11 @@ services:
       - DB_USER=root
       - DB_PASSWORD=password
       - SHOW_SQL=true
-      - API_DSTU2_HOST=dstu2
+      - API_DSTU2_HOST=localhost
       - API_DSTU2_PORT=8078
-      - API_STU3_HOST=stu3
+      - API_STU3_HOST=localhost
       - API_STU3_PORT=8079
-      - API_R4_HOST=r4
+      - API_R4_HOST=localhost
       - API_R4_PORT=8070
       - PATIENT_PICKER_HOST=localhost
       - PATIENT_PICKER_PORT=8094
@@ -220,4 +230,5 @@ services:
   
 
 volumes:
-  meld-sandbox-volume:
+  meld:
+  keycloak:

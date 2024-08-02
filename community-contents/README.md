@@ -21,7 +21,7 @@ Two setup options: with local dns mapping and without. The setup without dns map
 - #### Usage
 ```console
 curl -o docker-compose.yml https://raw.githubusercontent.com/Interop-community/meld/main/community-contents/dockerdesktop-compose.yml
-COMPOSE_PARALLEL_LIMIT=1 docker compose -f - -p meld up -d
+COMPOSE_PARALLEL_LIMIT=1 docker compose -p meld up -d
 ```
 ---
 <br/>
@@ -35,7 +35,7 @@ COMPOSE_PARALLEL_LIMIT=1 docker compose -f - -p meld up -d
 - #### Usage
 ```console 
 curl -o docker-compose.yml https://raw.githubusercontent.com/Interop-community/meld/main/community-contents/docker-compose.yml
-COMPOSE_PARALLEL_LIMIT=1 docker compose -f - -p meld up -d
+COMPOSE_PARALLEL_LIMIT=1 docker compose -p meld up -d
 ```
 ---
 <br/>

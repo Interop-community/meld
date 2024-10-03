@@ -2,13 +2,16 @@
 # COMPOSE_PARALLEL_LIMIT=1 docker compose up
 services:
 
+  keycloak_setup:
+    image: busybox
+    command: wget -O realm_properties.json
+        https://raw.githubusercontent.com/Interop-community/meld/main/community-contents/realm_properties.json && chmod 755 realm_properties.json
+    volumes:
+      - keycloak:/tmp/
+
   keycloak:
     container_name: keycloak
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM quay.io/keycloak/keycloak:legacy
-        ADD --chmod=755 https://raw.githubusercontent.com/Interop-community/meld/main/community-contents/realm_properties.json /tmp/
+    image: quay.io/keycloak/keycloak:legacy
     ports:
       - "8080:8080"
     environment:
@@ -16,7 +19,7 @@ services:
       - KEYCLOAK_USER=admin
       - KEYCLOAK_PASSWORD=admin
       - KC_HTTP_ENABLED=true
-      - KEYCLOAK_IMPORT=/tmp/realm_properties.json
+      - KEYCLOAK_IMPORT=/opt/jboss/keycloak/standalone/data/realm_properties.json
     volumes:
       - keycloak:/opt/jboss/keycloak/standalone/data/
     healthcheck:
@@ -25,6 +28,9 @@ services:
       timeout: 30s
       retries: 20
     network_mode: host
+    depends_on:
+      keycloak_setup:
+        condition: service_completed_successfully
 
   dstu2:
     container_name: dstu2
@@ -162,12 +168,7 @@ services:
       
   mysql:
     container_name: mysql
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM public.ecr.aws/interoperabilityinstitute/meld/meld-mysql
-        RUN sed -i 's+http://static-content:8090+https://iol2content.interop.community+g' /docker-entrypoint-initdb.d/sandman.sql
-        RUN echo "CREATE DATABASE keycloak;" > /docker-entrypoint-initdb.d/keycloak.sql
+    image: public.ecr.aws/interoperabilityinstitute/meld/meld-mysql:latest
     ports:
       - "3306:3306"
     volumes:

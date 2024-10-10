@@ -1,0 +1,278 @@
+
+# COMPOSE_PARALLEL_LIMIT=1 docker compose up
+services:
+
+  # keycloak_setup:
+  #   image: busybox
+  #   command: wget -O realm_properties.json
+  #       https://raw.githubusercontent.com/Interop-community/meld/main/community-contents/realm_properties.json && chmod 755 realm_properties.json
+  #   volumes:
+  #     - keycloak:/tmp/
+
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:legacy
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_VENDOR=h2
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+      - KC_HTTP_ENABLED=true
+      - KEYCLOAK_IMPORT=/tmp/realm_properties.json
+    volumes:
+      - keycloak:/opt/jboss/keycloak/standalone/data/
+      - ./realm_properties.json:/tmp/realm_properties.json
+    # depends_on:
+    #   keycloak_setup:
+    #     condition: service_completed_successfully
+
+  dstu2:
+    container_name: dstu2
+    image: public.ecr.aws/interoperabilityinstitute/meld/api:latest
+    entrypoint: ["sh", "-c"]
+    command: ["/usr/local/bin/wait-for-it $$DB_HOST $$DB_PORT 0 && java $$JAVA_OPTS -jar /app.jar"]
+    ports:
+      - "8078:8078"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dstu2,multitenant,local
+      - API_PORT=8078
+      - SANDBOX_NAME=hspc9
+      - SBMA_HOST=sandbox-manager-api
+      - SBMA_PORT=12000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=auth
+      - AUTH_PORT=8060
+      - MANIFEST_OVERRIDE=false
+      - MESSAGING_OVERRIDE=true
+    configs:
+      - source: wait_for_it
+        target: /usr/local/bin/wait-for-it
+        mode: 0755
+
+  stu3:
+    container_name: stu3
+    image: public.ecr.aws/interoperabilityinstitute/meld/api:latest
+    entrypoint: ["sh", "-c"]
+    command: ["/usr/local/bin/wait-for-it $$DB_HOST $$DB_PORT 0 && java $$JAVA_OPTS -jar /app.jar"]
+    ports:
+      - "8079:8079"
+    environment:
+      - SPRING_PROFILES_ACTIVE=stu3,multitenant,local
+      - API_PORT=8079
+      - SANDBOX_NAME=hspc9
+      - SBMA_HOST=sandbox-manager-api
+      - SBMA_PORT=12000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=auth
+      - AUTH_PORT=8060
+      - MANIFEST_OVERRIDE=false
+      - MESSAGING_OVERRIDE=true
+    configs:
+      - source: wait_for_it
+        target: /usr/local/bin/wait-for-it
+        mode: 0755
+
+  r4:
+    container_name: r4
+    image: public.ecr.aws/interoperabilityinstitute/meld/api:latest
+    entrypoint: ["sh", "-c"]
+    command: ["/usr/local/bin/wait-for-it $$DB_HOST $$DB_PORT 0 && java $$JAVA_OPTS -jar /app.jar"]
+    ports:
+      - "8070:8070"
+    environment:
+      - SPRING_PROFILES_ACTIVE=r4,multitenant,local
+      - API_PORT=8070
+      - SANDBOX_NAME=hspc10
+      - SBMA_HOST=sandbox-manager-api
+      - SBMA_PORT=12000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=auth
+      - AUTH_PORT=8060
+      - MANIFEST_OVERRIDE=false
+    configs:
+      - source: wait_for_it
+        target: /usr/local/bin/wait-for-it
+        mode: 0755
+
+  r5:
+    container_name: r5
+    image: public.ecr.aws/interoperabilityinstitute/meld/api:latest
+    entrypoint: ["sh", "-c"]
+    command: ["/usr/local/bin/wait-for-it $$DB_HOST $$DB_PORT 0 && java $$JAVA_OPTS -jar /app.jar"]
+    ports:
+      - "8071:8071"
+    environment:
+      - SPRING_PROFILES_ACTIVE=r5,multitenant,local
+      - API_PORT=8071
+      - SANDBOX_NAME=hspc10
+      - SBMA_HOST=sandbox-manager-api
+      - SBMA_PORT=12000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=auth
+      - AUTH_PORT=8060
+      - MANIFEST_OVERRIDE=false
+    configs:
+      - source: wait_for_it
+        target: /usr/local/bin/wait-for-it
+        mode: 0755
+
+  
+  sandbox:
+    container_name: sandbox
+    image: public.ecr.aws/interoperabilityinstitute/meld/sandbox-manager:local 
+    command: >
+      /bin/sh -c "
+      /usr/local/bin/wait-for-it stu3 8079 0 && 
+      /usr/local/bin/wait-for-it keycloak 8080 0 && 
+      /usr/local/bin/wait-for-it auth 8060 &&
+      /sbin/nginx -g 'daemon off;'"
+    ports:
+      - "3001:3000"   
+    configs:
+      - source: wait_for_it
+        target: /usr/local/bin/wait-for-it
+        mode: 0755
+    
+
+  ehr-app:
+    container_name: ehr-app
+    image: public.ecr.aws/interoperabilityinstitute/meld/ehr-app
+    ports:
+    -  "3000:3000"
+
+
+  sandbox-manager-api:
+    container_name: sandbox-manager-api
+    entrypoint: ["sh", "-c"]
+    command: ["/usr/local/bin/wait-for-it $$DB_HOST $$DB_PORT 0 && java $$JAVA_OPTS -jar /app.jar"]
+    image: public.ecr.aws/interoperabilityinstitute/meld/sandbox-manager-api
+    ports:
+      - "12000:12000"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=sandman
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - AUTH_HOST=auth
+      - AUTH_PORT=8060
+      - API_DSTU2_HOST=dstu2
+      - API_STU3_HOST=stu3
+      - API_R4_HOST=r4
+      - API_R5_HOST=r5
+    configs:
+      - source: wait_for_it
+        target: /usr/local/bin/wait-for-it
+        mode: 0755
+
+  mysql:
+    container_name: mysql
+    image: public.ecr.aws/interoperabilityinstitute/meld/meld-mysql:latest
+    ports:
+      - "3306:3306"
+    volumes:
+      - meld:/var/lib/mysql
+    environment:
+      - MYSQL_PASSWORD=password
+      - MYSQL_ROOT_PASSWORD=password
+
+  auth:
+    container_name: reference-auth
+    image: public.ecr.aws/interoperabilityinstitute/meld/auth:local
+    entrypoint: ["sh", "-c"]
+    command: ["/usr/local/bin/wait-for-it $$DB_HOST 3306 0 && java $$JAVA_OPTS -Djava.security.egd=file:/dev/./urandom -jar jetty-runner.jar --config jetty.xml app.war"]
+    ports:
+      - "8060:8060"
+    environment:
+      - AUTH_HOST=auth
+      - AUTH_PORT=8060
+      - DB_NAME=oic
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - SHOW_SQL=true
+      - API_DSTU2_HOST=localhost
+      - API_DSTU2_PORT=8078
+      - API_STU3_HOST=localhost
+      - API_STU3_PORT=8079
+      - API_R4_HOST=localhost
+      - API_R4_PORT=8070
+      - PATIENT_PICKER_HOST=localhost
+      - PATIENT_PICKER_PORT=8094
+      - SANDMAN_API_HOST=sandbox-manager-api
+      - SANDMAN_API_PORT=12000
+      - SPRING_PROFILES_ACTIVE=users-keycloak,local
+      - KEYCLOAK_REALM=Development
+      - KEYCLOAK_AUTH_SERVER_URL=http://keycloak:8080/auth
+      - KEYCLOAK_SSL_REQUIRED=none
+      - KEYCLOAK_CREDENTIALS=593ada9c-b1dc-444f-a2e6-30cc4add8146
+      - KEYCLOAK_LOGOUT_SUCCESS_URL=http://keycloak:8080/auth/realms/Development/protocol/openid-connect/logout?redirect_uri=http://localhost:3001
+      - LOGOUT_SUCCESS_URL_PROPERTY="redirect_uri"
+    configs:
+      - source: wait_for_it
+        target: /usr/local/bin/wait-for-it
+        mode: 0755
+    
+
+  patient-data-manager:
+    container_name: patient-data-manager
+    image: public.ecr.aws/interoperabilityinstitute/meld/patient-data-manager
+    ports:
+      - "8096:8096"
+
+  bilirubin-risk-chart:
+    container_name: bilirubin-risk-chart
+    image: public.ecr.aws/interoperabilityinstitute/meld/bilirubin-risk-chart
+    ports:
+      - "8086:8086"
+  
+
+volumes:
+  meld:
+  keycloak:
+
+
+configs:
+  wait_for_it:
+    content: |
+      #!/usr/bin/env bash
+      set -e
+
+      HOST="$$1"
+      shift
+      PORT="$$1"
+      shift
+      TIMEOUT="$${3:-0}"
+
+      if [[ "$$TIMEOUT" -eq 0 ]]; then
+          echo "Waiting for $$HOST:$$PORT ..."
+          while ! nc -z "$$HOST" "$$PORT"; do
+              sleep 1
+          done
+          echo "$$HOST:$$PORT is up!"
+          exit 0
+      fi
+
+      echo "Waiting for $$HOST:$$PORT for up to $$TIMEOUT seconds..."
+      for i in $(seq $$TIMEOUT); do
+          if nc -z "$$HOST" "$$PORT"; then
+              echo "$$HOST:$$PORT is up!"
+              exit 0
+          fi
+          sleep 1
+      done
+      echo "Timeout waiting for $$HOST:$$PORT"
+      exit 1
